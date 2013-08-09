@@ -1,6 +1,7 @@
 {-# Language DeriveFoldable #-}
 
 import Prelude hiding (foldl)
+import Data.Maybe (fromJust)
 import Test.HUnit
 import Data.Foldable hiding (mapM_)
 
@@ -36,6 +37,11 @@ findMin E = Nothing
 deleteMin :: Ord a => Heap a -> Heap a
 deleteMin E = E
 deleteMin (T _ _ a b) = merge a b
+
+-- convert a heap to a sorted list
+toSortedList :: Ord a => Heap a -> [a]
+toSortedList E = []
+toSortedList h = fromJust (findMin h):toSortedList (deleteMin h)
 
 tests :: Test
 tests = test
