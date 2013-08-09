@@ -3,6 +3,7 @@
 import Prelude hiding (foldl)
 import Data.Maybe (fromJust)
 import Test.HUnit
+import Test.QuickCheck
 import Data.Foldable hiding (mapM_)
 
 data Heap a = E | T Int a (Heap a) (Heap a)
@@ -30,6 +31,13 @@ empty = E
 insert :: Ord a => Heap a -> a -> Heap a
 insert h x = merge (T 1 x E E) h
 
+-- an insert function that directly inserts the new element instead of creating
+-- and merging a singleton tree
+insert' :: Ord a => Heap a -> a -> Heap a
+insert' E x           = T 1 x E E
+insert' (T r v E E) x = T r (min v x) (T 1 (max v x) E E) E
+insert' (T r v a b) x = T r (min x v) (insert' a (max x v)) b
+
 findMin :: Heap a -> Maybe a
 findMin (T _ v _ _) = Just v
 findMin E = Nothing
@@ -49,6 +57,8 @@ tests = test
     (empty :: Heap Int) ~=? deleteMin empty
   , "findMin empty"    ~:
     (Nothing :: Maybe Int) ~=? findMin empty
+  , "toSortedList $ findMin [1..10]"  ~:
+    [1..10] ~=? toSortedList (foldl insert empty [1..10])
   , "findMin [1..10]"  ~:
     (Just 1::Maybe Int) ~=? findMin (foldl insert empty [1..10])
   , "findMin [10..1]"  ~:
@@ -61,4 +71,10 @@ tests = test
     (Just 2 :: Maybe Int) ~=? (findMin . deleteMin . foldl insert empty) [10,9..1]
   ]
 
-main = runTestTT tests
+prop_insertsEquality :: [Int] -> Bool
+prop_insertsEquality xs = let h1 = foldl insert empty xs
+                              h2 = foldl insert' empty xs
+                           in toSortedList h1 == toSortedList h2
+
+main = do runTestTT tests
+          quickCheck prop_insertsEquality
